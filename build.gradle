@@ -99,7 +99,7 @@ allprojects {
 }
 
 ext {
-  gradleVersion = "$versions.gradle"
+  gradleVersion = versions.gradle
   minJavaVersion = "8"
   buildVersionFileName = "kafka-version.properties"
 
@@ -394,6 +394,11 @@ subprojects {
   }
 
   plugins.withType(ScalaPlugin) {
+
+    scala {
+      zincVersion = versions.zinc
+    }
+
     task scaladocJar(type:Jar) {
       classifier = 'scaladoc'
       from "$rootDir/LICENSE"
@@ -468,7 +473,7 @@ subprojects {
   checkstyle {
     configFile = new File(rootDir, "checkstyle/checkstyle.xml")
     configProperties = checkstyleConfigProperties("import-control.xml")
-    toolVersion = "$versions.checkstyle"
+    toolVersion = versions.checkstyle
   }
 
   configure(checkstyleMain) {
@@ -484,7 +489,7 @@ subprojects {
   test.dependsOn('checkstyleMain', 'checkstyleTest')
 
   spotbugs {
-    toolVersion = "$versions.spotbugs"
+    toolVersion = versions.spotbugs
     excludeFilter = file("$rootDir/gradle/spotbugs-exclude.xml")
     ignoreFailures = false
   }
@@ -504,7 +509,7 @@ subprojects {
     apply plugin: "jacoco"
 
     jacoco {
-      toolVersion = "$versions.jacoco"
+      toolVersion = versions.jacoco
     }
 
     // NOTE: Jacoco Gradle plugin does not support "offline instrumentation" this means that classes mocked by PowerMock
@@ -685,7 +690,7 @@ project(':core') {
   }
 
   scoverage {
-    scoverageVersion = "$versions.scoverage"
+    scoverageVersion = versions.scoverage
     reportDir = file("${rootProject.buildDir}/scoverage")
     highlighting = false
     minimumRate = 0.0
