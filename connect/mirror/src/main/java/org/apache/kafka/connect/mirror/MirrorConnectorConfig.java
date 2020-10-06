@@ -221,6 +221,7 @@ public class MirrorConnectorConfig extends AbstractConfig {
         props.putAll(originalsWithPrefix(SOURCE_CLUSTER_PREFIX));
         props.keySet().retainAll(MirrorClientConfig.CLIENT_CONFIG_DEF.names());
         props.putAll(originalsWithPrefix(PRODUCER_CLIENT_PREFIX));
+        props.putAll(originalsWithPrefix(SOURCE_CLUSTER_PREFIX + PRODUCER_CLIENT_PREFIX));
         return props;
     }
 
@@ -229,8 +230,9 @@ public class MirrorConnectorConfig extends AbstractConfig {
         props.putAll(originalsWithPrefix(SOURCE_CLUSTER_PREFIX));
         props.keySet().retainAll(MirrorClientConfig.CLIENT_CONFIG_DEF.names());
         props.putAll(originalsWithPrefix(CONSUMER_CLIENT_PREFIX));
+        props.putAll(originalsWithPrefix(SOURCE_CLUSTER_PREFIX + CONSUMER_CLIENT_PREFIX));
         props.put("enable.auto.commit", "false");
-        props.put("auto.offset.reset", "earliest");
+        props.putIfAbsent("auto.offset.reset", "earliest");
         return props;
     }
 
