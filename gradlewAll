@@ -15,5 +15,5 @@
 
 # Convenient way to invoke a gradle command with all Scala versions supported
 # by default
-./gradlew "$@" -PscalaVersion=2.12 -s -d && ./gradlew "$@" -PscalaVersion=2.13 -s -d
+./gradlew "$@" -PscalaVersion=2.12 -s && ./gradlew "$@" -PscalaVersion=2.13 -s
 
