@@ -214,7 +214,9 @@ public class MirrorSourceConnector extends SourceConnector {
             throws InterruptedException, ExecutionException {
 
         List<TopicPartition> sourceTopicPartitions = findSourceTopicPartitions();
+        log.info("[ddog] sourceTopicPartitions: {}", sourceTopicPartitions);
         List<TopicPartition> targetTopicPartitions = findTargetTopicPartitions();
+        log.info("[ddog] targetTopicPartitions: {}", targetTopicPartitions);
 
         Set<TopicPartition> sourceTopicPartitionsSet = new HashSet<>(sourceTopicPartitions);
         Set<TopicPartition> knownSourceTopicPartitionsSet = new HashSet<>(knownSourceTopicPartitions);
@@ -222,9 +224,11 @@ public class MirrorSourceConnector extends SourceConnector {
         Set<TopicPartition> upstreamTargetTopicPartitions = targetTopicPartitions.stream()
                 .map(x -> new TopicPartition(replicationPolicy.upstreamTopic(x.topic()), x.partition()))
                 .collect(Collectors.toSet());
+        log.info("[ddog] upstreamTargetTopicPartitions: {}", upstreamTargetTopicPartitions);
 
         Set<TopicPartition> missingInTarget = new HashSet<>(sourceTopicPartitions);
         missingInTarget.removeAll(upstreamTargetTopicPartitions);
+        log.info("[ddog] missingInTarget: {}", missingInTarget);
 
         knownTargetTopicPartitions = targetTopicPartitions;
 
@@ -258,12 +262,15 @@ public class MirrorSourceConnector extends SourceConnector {
     private void loadTopicPartitions()
             throws InterruptedException, ExecutionException {
         knownSourceTopicPartitions = findSourceTopicPartitions();
+        log.info("[ddog] knownSourceTopicPartitions: {}", knownSourceTopicPartitions);
         knownTargetTopicPartitions = findTargetTopicPartitions();
+        log.info("[ddog] knownTargetTopicPartitions: {}", knownTargetTopicPartitions);
     }
 
     private void refreshKnownTargetTopics()
             throws InterruptedException, ExecutionException {
         knownTargetTopicPartitions = findTargetTopicPartitions();
+        log.info("[ddog] knownTargetTopicPartitions (refresh): {}", knownTargetTopicPartitions);
     }
 
     private Set<String> topicsBeingReplicated() {
@@ -327,7 +334,7 @@ public class MirrorSourceConnector extends SourceConnector {
             Map<String, NewPartitions> newPartitions) {
         targetAdminClient.createTopics(newTopics, new CreateTopicsOptions()).values().forEach((k, v) -> v.whenComplete((x, e) -> {
             if (e != null) {
-                log.warn("Could not create topic {}.", k, e);
+                log.info("Could not create topic {}.", k, e);
             } else {
                 log.info("Created remote topic {} with {} partitions.", k, partitionCounts.get(k));
             }
@@ -336,7 +343,7 @@ public class MirrorSourceConnector extends SourceConnector {
             if (e instanceof InvalidPartitionsException) {
                 // swallow, this is normal
             } else if (e != null) {
-                log.warn("Could not create topic-partitions for {}.", k, e);
+                log.info("Could not create topic-partitions for {}.", k, e);
             } else {
                 log.info("Increased size of {} to {} partitions.", k, partitionCounts.get(k));
             }
