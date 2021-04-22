@@ -225,6 +225,7 @@ public class MirrorCheckpointTask extends SourceTask {
         Map<String, KafkaFuture<ConsumerGroupDescription>> consumerGroupsDesc = targetAdminClient
             .describeConsumerGroups(consumerGroups).describedGroups();
 
+        log.info("[ddog] b:refreshIdleConsumerGroupOffset - idleConsumerGroupsOffset: {}", idleConsumerGroupsOffset.keySet());
         for (String group : consumerGroups) {
             try {
                 ConsumerGroupDescription consumerGroupDesc = consumerGroupsDesc.get(group).get();
@@ -233,15 +234,20 @@ public class MirrorCheckpointTask extends SourceTask {
                 // (1) idle: because the consumer at target is not actively consuming the mirrored topic
                 // (2) dead: the new consumer that is recently created at source and never exist at target
                 if (consumerGroupState.equals(ConsumerGroupState.EMPTY)) {
+                    log.info("[ddog] refreshIdleConsumerGroupOffset - cg {} is empty on target", group);
                     idleConsumerGroupsOffset.put(group, targetAdminClient.listConsumerGroupOffsets(group)
                         .partitionsToOffsetAndMetadata().get().entrySet().stream().collect(
                             Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+                } else {
+                    log.info("[ddog] refreshIdleConsumerGroupOffset - cg {} is NOT empty/dead on target", group);
                 }
                 // new consumer upstream has state "DEAD" and will be identified during the offset sync-up
             } catch (InterruptedException | ExecutionException e) {
                 log.error("Error querying for consumer group {} on cluster {}.", group, targetClusterAlias, e);
             }
         }
+        log.info("[ddog] a:refreshIdleConsumerGroupOffset - idleConsumerGroupsOffset: {}", idleConsumerGroupsOffset.keySet());
+
     }
 
     Map<String, Map<TopicPartition, OffsetAndMetadata>> syncGroupOffset() {
@@ -253,10 +259,13 @@ public class MirrorCheckpointTask extends SourceTask {
             // for each idle consumer at target, read the checkpoints (converted upstream offset)
             // from the pre-populated map
             Map<TopicPartition, OffsetAndMetadata> convertedUpstreamOffset = group.getValue();
+            log.info("[ddog] syncGroupOffset - consumerId: {}, convertedUpstreamOffset: {}", consumerGroupId, convertedUpstreamOffset);
 
             Map<TopicPartition, OffsetAndMetadata> offsetToSync = new HashMap<>();
+            log.info("[ddog] syncGroupOffset - idleConsumerGroupsOffset: {}", idleConsumerGroupsOffset.keySet());
             Map<TopicPartition, OffsetAndMetadata> targetConsumerOffset = idleConsumerGroupsOffset.get(consumerGroupId);
             if (targetConsumerOffset == null) {
+                log.info("[ddog] syncGroupOffset - targetConsumerOffset {} is null", consumerGroupId);
                 // this is a new consumer, just sync the offset to target
                 syncGroupOffset(consumerGroupId, convertedUpstreamOffset);
                 offsetToSyncAll.put(consumerGroupId, convertedUpstreamOffset);
@@ -269,6 +278,7 @@ public class MirrorCheckpointTask extends SourceTask {
                 OffsetAndMetadata convertedOffset = convertedUpstreamOffset.get(topicPartition);
                 if (!targetConsumerOffset.containsKey(topicPartition)) {
                     // if is a new topicPartition from upstream, just sync the offset to target
+                    log.info("[ddog] syncGroupOffset - targetConsumerOffset {} does not contain topicPartition {}", targetConsumerOffset, topicPartition);
                     offsetToSync.put(topicPartition, convertedOffset);
                     continue;
                 }
@@ -277,7 +287,7 @@ public class MirrorCheckpointTask extends SourceTask {
                 // in the target, skip updating the offset for that partition
                 long latestDownstreamOffset = targetConsumerOffset.get(topicPartition).offset();
                 if (latestDownstreamOffset >= convertedOffset.offset()) {
-                    log.trace("latestDownstreamOffset {} is larger than or equal to convertedUpstreamOffset {} for "
+                    log.info("[ddog] syncGroupOffset - latestDownstreamOffset {} is larger than or equal to convertedUpstreamOffset {} for "
                         + "TopicPartition {}", latestDownstreamOffset, convertedOffset.offset(), topicPartition);
                     continue;
                 }
@@ -299,7 +309,7 @@ public class MirrorCheckpointTask extends SourceTask {
     void syncGroupOffset(String consumerGroupId, Map<TopicPartition, OffsetAndMetadata> offsetToSync) {
         if (targetAdminClient != null) {
             targetAdminClient.alterConsumerGroupOffsets(consumerGroupId, offsetToSync);
-            log.trace("sync-ed the offset for consumer group: {} with {} number of offset entries",
+            log.info("[ddog] syncGroupOffset - sync-ed the offset for consumer group: {} with {} number of offset entries",
                       consumerGroupId, offsetToSync.size());
         }
     }
