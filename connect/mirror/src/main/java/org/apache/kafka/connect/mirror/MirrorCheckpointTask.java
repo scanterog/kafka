@@ -291,6 +291,7 @@ public class MirrorCheckpointTask extends SourceTask {
                         + "TopicPartition {}", latestDownstreamOffset, convertedOffset.offset(), topicPartition);
                     continue;
                 }
+                log.info("[ddog] syncGroupOffset - offsetToSync(tp={},co={})", topicPartition, convertedOffset);
                 offsetToSync.put(topicPartition, convertedOffset);
             }
 
@@ -309,8 +310,8 @@ public class MirrorCheckpointTask extends SourceTask {
     void syncGroupOffset(String consumerGroupId, Map<TopicPartition, OffsetAndMetadata> offsetToSync) {
         if (targetAdminClient != null) {
             targetAdminClient.alterConsumerGroupOffsets(consumerGroupId, offsetToSync);
-            log.info("[ddog] syncGroupOffset - sync-ed the offset for consumer group: {} with {} number of offset entries",
-                      consumerGroupId, offsetToSync.size());
+            log.info("[ddog] syncGroupOffset - sync-ed the offset for consumer group: {} with {}",
+                      consumerGroupId, offsetToSync);
         }
     }
 
